@@ -6,110 +6,97 @@ on:
 
 jobs:
   deploy:
-    name: "Build and Deploy to Dev VM"
+    name: "Deploy to Dev VM"
     runs-on: self-hosted
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Validate secrets ─────────────────────────────────────────────
       - name: Validate required secrets
-        shell: bash
         run: |
           set -euo pipefail
+          [ -n "${{ secrets.DEV_USER }}" ]
+          [ -n "${{ secrets.DEV_HOST }}" ]
+          [ -n "${{ secrets.DEV_SSH_KEY }}" ]
+          echo "Secrets OK"
 
-          test -n "${{ secrets.DEV_USER }}"
-          test -n "${{ secrets.DEV_HOST }}"
-          test -n "${{ secrets.DEV_SSH_KEY }}"
-
-          echo "DEV_USER is set"
-          echo "DEV_HOST is set"
-          echo "DEV_SSH_KEY is set"
-
-      - name: Ensure remote app directory exists
-        shell: bash
+      # ── Setup SSH key (once) ────────────────────────────────────────
+      - name: Setup SSH key
         run: |
-          set -euo pipefail
-
-          cat > /tmp/deploy_key <<'KEY'
-          ${{ secrets.DEV_SSH_KEY }}
-          KEY
+          echo "${{ secrets.DEV_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}" "sudo mkdir -p /opt/app && sudo chown ${USER:-${{ secrets.DEV_USER }}}:${USER:-${{ secrets.DEV_USER }}} /opt/app || sudo chown ${{ secrets.DEV_USER }}:${{ secrets.DEV_USER }} /opt/app"
-
-          rm -f /tmp/deploy_key
-
-      - name: Copy app files to Dev VM
-        shell: bash
+      # ── Ensure directory exists ─────────────────────────────────────
+      - name: Prepare remote directory
         run: |
-          set -euo pipefail
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} \
+            "sudo mkdir -p /opt/app && sudo chown ${{ secrets.DEV_USER }}:${{ secrets.DEV_USER }} /opt/app"
 
-          cat > /tmp/deploy_key <<'KEY'
-          ${{ secrets.DEV_SSH_KEY }}
-          KEY
-          chmod 600 /tmp/deploy_key
-
-          if [ ! -d app ]; then
-            echo "Missing required directory: app/"
-            exit 1
-          fi
-
-          if [ ! -f Dockerfile ]; then
-            echo "Missing required file: Dockerfile"
-            exit 1
-          fi
-
-          if [ ! -f docker-compose.yml ]; then
-            echo "Missing required file: docker-compose.yml"
-            exit 1
-          fi
-
-          FILES_TO_COPY="app Dockerfile docker-compose.yml"
-
-          if [ -f .dockerignore ]; then
-            FILES_TO_COPY="$FILES_TO_COPY .dockerignore"
-          fi
-
-          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no -r $FILES_TO_COPY "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}:/opt/app/"
-
-          rm -f /tmp/deploy_key
-
-      - name: Deploy Flask container
-        shell: bash
+      # ── Validate project structure ──────────────────────────────────
+      - name: Validate files
         run: |
-          set -euo pipefail
+          set -e
+          [ -d app ] || (echo "Missing app/ directory" && exit 1)
+          [ -f Dockerfile ] || (echo "Missing Dockerfile" && exit 1)
+          [ -f docker-compose.yml ] || (echo "Missing docker-compose.yml" && exit 1)
 
-          cat > /tmp/deploy_key <<'KEY'
-          ${{ secrets.DEV_SSH_KEY }}
-          KEY
-          chmod 600 /tmp/deploy_key
+      # ── Copy files (reliable sync) ──────────────────────────────────
+      - name: Sync files to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no" \
+            ./app ./Dockerfile ./docker-compose.yml \
+            ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}:/opt/app/
 
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}" <<EOF
+      # ── Deploy (robust version) ─────────────────────────────────────
+      - name: Deploy container
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} << 'EOF'
           set -e
 
           cd /opt/app
 
-          export DEPLOY_TIME="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          export GITHUB_SHA="${{ github.sha }}"
-          export GITHUB_REF_NAME="${{ github.ref_name }}"
+          echo "=== Starting deploy ==="
 
-          echo "=== Deploying \${GITHUB_SHA:0:7} from \${GITHUB_REF_NAME} ==="
+          # Ensure Docker is running
+          sudo systemctl enable docker || true
+          sudo systemctl start docker || true
 
-          sudo docker compose down --remove-orphans
-          sudo env DEPLOY_TIME="\$DEPLOY_TIME" GITHUB_SHA="\$GITHUB_SHA" GITHUB_REF_NAME="\$GITHUB_REF_NAME" docker compose up -d --build
+          # Pull latest base images
+          sudo docker compose pull || true
 
-          echo "=== Deploy complete ==="
+          # Rebuild + restart (no hard downtime)
+          sudo docker compose up -d --build --remove-orphans
+
+          echo "=== Containers ==="
           sudo docker compose ps
+
+          echo "=== Deploy finished ==="
           EOF
 
-          rm -f /tmp/deploy_key
-
-      - name: Smoke test
-        shell: bash
+      # ── Reliable health check ───────────────────────────────────────
+      - name: Smoke test (with retry)
         run: |
-          set -euo pipefail
+          set -e
 
-          sleep 6
-          curl -f "http://${{ secrets.DEV_HOST }}:5000/health" | python3 -m json.tool
-          echo "=== Smoke test passed — app is live at http://${{ secrets.DEV_HOST }}:5000 ==="
+          for i in {1..10}; do
+            if curl -fs http://${{ secrets.DEV_HOST }}:5000/health > /dev/null; then
+              echo "App is healthy"
+              exit 0
+            fi
+            echo "Waiting for app... ($i)"
+            sleep 3
+          done
+
+          echo "Smoke test failed"
+          exit 1
+
+      # ── Cleanup ─────────────────────────────────────────────────────
+      - name: Cleanup SSH key
+        if: always()
+        run: |
+          shred -u /tmp/deploy_key || rm -f /tmp/deploy_key
