@@ -3,7 +3,7 @@
 ## About Me
 - **Name:** [Melkias Gobai]
 - **GitHub Username:** [melkiasgobai35]
-- **Major:** [Cybersecurity and Digital Forensic]
+- **Major:** [Cybersecurity]
 - **Semester:** [Spring]
 
 ## About This Course
