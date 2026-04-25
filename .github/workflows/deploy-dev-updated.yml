@@ -1,0 +1,115 @@
+name: "Deploy — Dev"
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: "Build and Deploy to Dev VM"
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "${{ secrets.DEV_USER }}"
+          test -n "${{ secrets.DEV_HOST }}"
+          test -n "${{ secrets.DEV_SSH_KEY }}"
+
+          echo "DEV_USER is set"
+          echo "DEV_HOST is set"
+          echo "DEV_SSH_KEY is set"
+
+      - name: Ensure remote app directory exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/deploy_key <<'KEY'
+          ${{ secrets.DEV_SSH_KEY }}
+          KEY
+          chmod 600 /tmp/deploy_key
+
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}" "sudo mkdir -p /opt/app && sudo chown ${USER:-${{ secrets.DEV_USER }}}:${USER:-${{ secrets.DEV_USER }}} /opt/app || sudo chown ${{ secrets.DEV_USER }}:${{ secrets.DEV_USER }} /opt/app"
+
+          rm -f /tmp/deploy_key
+
+      - name: Copy app files to Dev VM
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/deploy_key <<'KEY'
+          ${{ secrets.DEV_SSH_KEY }}
+          KEY
+          chmod 600 /tmp/deploy_key
+
+          if [ ! -d app ]; then
+            echo "Missing required directory: app/"
+            exit 1
+          fi
+
+          if [ ! -f Dockerfile ]; then
+            echo "Missing required file: Dockerfile"
+            exit 1
+          fi
+
+          if [ ! -f docker-compose.yml ]; then
+            echo "Missing required file: docker-compose.yml"
+            exit 1
+          fi
+
+          FILES_TO_COPY="app Dockerfile docker-compose.yml"
+
+          if [ -f .dockerignore ]; then
+            FILES_TO_COPY="$FILES_TO_COPY .dockerignore"
+          fi
+
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no -r $FILES_TO_COPY "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}:/opt/app/"
+
+          rm -f /tmp/deploy_key
+
+      - name: Deploy Flask container
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/deploy_key <<'KEY'
+          ${{ secrets.DEV_SSH_KEY }}
+          KEY
+          chmod 600 /tmp/deploy_key
+
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}" <<EOF
+          set -e
+
+          cd /opt/app
+
+          export DEPLOY_TIME="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          export GITHUB_SHA="${{ github.sha }}"
+          export GITHUB_REF_NAME="${{ github.ref_name }}"
+
+          echo "=== Deploying \${GITHUB_SHA:0:7} from \${GITHUB_REF_NAME} ==="
+
+          sudo docker compose down --remove-orphans
+          sudo env DEPLOY_TIME="\$DEPLOY_TIME" GITHUB_SHA="\$GITHUB_SHA" GITHUB_REF_NAME="\$GITHUB_REF_NAME" docker compose up -d --build
+
+          echo "=== Deploy complete ==="
+          sudo docker compose ps
+          EOF
+
+          rm -f /tmp/deploy_key
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sleep 6
+          curl -f "http://${{ secrets.DEV_HOST }}:5000/health" | python3 -m json.tool
+          echo "=== Smoke test passed — app is live at http://${{ secrets.DEV_HOST }}:5000 ==="
