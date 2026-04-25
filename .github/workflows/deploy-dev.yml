@@ -21,10 +21,12 @@ jobs:
           test -n "${{ secrets.DEV_USER }}"
           test -n "${{ secrets.DEV_HOST }}"
           test -n "${{ secrets.DEV_SSH_KEY }}"
+          test -n "${{ secrets.SUDO_PASS }}"
 
           echo "DEV_USER is set"
           echo "DEV_HOST is set"
           echo "DEV_SSH_KEY is set"
+          echo "SUDO_PASS is set"
 
       - name: Ensure remote app directory exists
         shell: bash
