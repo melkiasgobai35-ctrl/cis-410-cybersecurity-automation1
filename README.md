@@ -2,7 +2,7 @@
 
 ## About Me
 - **Name:** [Melkias Gobai]
-- **GitHub Username:** [melkiasgobai35]
+- **GitHub Username:** [melkiasgobai35-ctrl]
 - **Major:** [Cybersecurity]
 - **Semester:** [Spring]
 
