@@ -42,7 +42,7 @@ jobs:
 
           echo '=== BUILD STAGE ==='
 
-          echo "Runner hostname: $(hostname)"
+          echo "Runner hostname: $(gobaim)"
 
           echo "Triggered by commit: ${{ github.sha }}"
 
