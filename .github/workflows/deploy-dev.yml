@@ -12,7 +12,7 @@
 #   2. THIS workflow runs automatically on every git push to main
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: "Deploy — Dev"
+name: "deploy — dev"
 
 on:
   push:
