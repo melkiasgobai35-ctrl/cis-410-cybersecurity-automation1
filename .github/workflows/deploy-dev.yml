@@ -69,7 +69,7 @@ jobs:
 
           echo "=== Deploying ${GITHUB_SHA:0:7} from ${GITHUB_REF_NAME} ==="
 
-          sudo docker compose down --remove-orphans
+          sudo docker compose down --remove-orphans || sudo docker compose kill || true
           sudo DEPLOY_TIME="${DEPLOY_TIME}" GITHUB_SHA="${GITHUB_SHA}" GITHUB_REF_NAME="${GITHUB_REF_NAME}" \
             docker compose up -d --build
 
