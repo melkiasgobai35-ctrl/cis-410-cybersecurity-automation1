@@ -4,8 +4,6 @@ services:
     container_name: cis410-web
     ports:
       - "5000:5000"
-      - "5001:5001"
-      - "5002:5002"
     restart: unless-stopped
     environment:
       # These values are injected by the deploy workflow at run time.
