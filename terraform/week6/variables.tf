@@ -4,7 +4,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 variable "project_id" {
-  description = "Your GCP Project ID (e.g. cis410-496021)"
+  description = "Your GCP Project ID (e.g. cis410-ed-a7b2)"
   type        = string
 }
 
