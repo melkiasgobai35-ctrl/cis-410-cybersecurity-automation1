@@ -3,12 +3,12 @@
 # Values printed after terraform apply. Both buckets shown.
 # ─────────────────────────────────────────────────────────────────────────────
 
-output "tf_state_bucket_name" {
+output "cis410_project_melki" {
   description = "Terraform state bucket name"
   value       = google_storage_bucket.tf_state.name
 }
 
-output "tf_state_bucket_url" {
+output "https://console.cloud.google.com/storage/browser?authuser=0&project=cis410-496021&supportedpurview=project&prefix=&forceOnBucketsSortingFiltering=true&bucketType=live" {
   description = "GCS URL — used as backend in Week 7"
   value       = google_storage_bucket.tf_state.url
 }
@@ -23,7 +23,7 @@ output "logs_bucket_url" {
   value       = google_storage_bucket.logs.url
 }
 
-output "project_id" {
+output "cis410-496021" {
   description = "GCP project this was deployed to"
   value       = var.project_id
 }
