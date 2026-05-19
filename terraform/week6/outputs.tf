@@ -8,7 +8,7 @@ output "cis410_project_melki" {
   value       = google_storage_bucket.tf_state.name
 }
 
-output "https://console.cloud.google.com/storage/browser?authuser=0&project=cis410-496021&supportedpurview=project&prefix=&forceOnBucketsSortingFiltering=true&bucketType=live" {
+output "melkiasgobai35@gmail.com" {
   description = "GCS URL — used as backend in Week 7"
   value       = google_storage_bucket.tf_state.url
 }
