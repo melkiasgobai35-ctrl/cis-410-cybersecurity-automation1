@@ -31,7 +31,7 @@ terraform {
   #
   # REPLACE: change cis410-yourname-xxxx-tfstate to your actual bucket name.
   backend "gcs" {
-    bucket = "cis410-mg-logs"   # ← your bucket name
+    bucket = "cis410-mg_cloudbuild"   # ← your bucket name
     prefix = "terraform/week8"
   }
 
@@ -67,7 +67,7 @@ provider "google" {
 data "terraform_remote_state" "week7" {
   backend = "gcs"
   config = {
-    bucket = "cis410-mg-log"   # ← same bucket as above
+    bucket = "cis410-mg_cloudbuild"   # ← same bucket as above
     prefix = "terraform/week7"                 # ← must match Week 7 backend prefix exactly
   }
 }
