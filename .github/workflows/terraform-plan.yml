@@ -60,8 +60,8 @@ jobs:
       - name: Authenticate to GCP via OIDC
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.SA_EMAIL }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.SA_EMAIL }}
 
       # ── Step 3: Setup Terraform ────────────────────────────────────────────
       # Installs Terraform on the runner at the pinned version.
