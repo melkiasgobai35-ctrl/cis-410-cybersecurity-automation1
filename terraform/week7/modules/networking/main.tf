@@ -38,8 +38,8 @@ resource "google_compute_network" "vpc" {
 # This creates an implicit dependency — Terraform creates the VPC first,
 # then the subnet. No "depends_on" needed.
 resource "google_compute_subnetwork" "public" {
-  name          = "${var.vpc_name}-public"  # e.g. "cis410-vpc-public"
-  ip_cidr_range = var.subnet_cidr           # e.g. "10.0.1.0/24"
+  name          = "${var.vpc_name}-public" # e.g. "cis410-vpc-public"
+  ip_cidr_range = var.subnet_cidr          # e.g. "10.0.1.0/24"
   region        = var.region
   network       = google_compute_network.vpc.id
   project       = var.project_id
@@ -71,7 +71,7 @@ resource "google_compute_firewall" "allow_ssh" {
     ports    = ["22"]
   }
 
-  source_ranges = [var.my_ip_cidr]  # your IP only — set in terraform.tfvars
+  source_ranges = [var.my_ip_cidr] # your IP only — set in terraform.tfvars
   target_tags   = ["ssh-enabled"]
   description   = "Allow SSH from operator IP only — not 0.0.0.0/0"
 }
@@ -97,7 +97,7 @@ resource "google_compute_firewall" "allow_http" {
     ports    = ["80", "8080"]
   }
 
-  source_ranges = ["0.0.0.0/0"]   # any IP — intentional for web traffic
+  source_ranges = ["0.0.0.0/0"] # any IP — intentional for web traffic
   target_tags   = ["web-server"]
   description   = "Allow HTTP and 8080 traffic to web-tagged resources"
 }
@@ -124,7 +124,7 @@ resource "google_compute_firewall" "deny_all_ingress" {
   direction = "INGRESS"
 
   deny {
-    protocol = "all"  # block all protocols (TCP, UDP, ICMP, etc.)
+    protocol = "all" # block all protocols (TCP, UDP, ICMP, etc.)
   }
 
   source_ranges = ["0.0.0.0/0"]

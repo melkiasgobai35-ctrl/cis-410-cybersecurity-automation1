@@ -32,7 +32,7 @@ terraform {
   # REPLACE: change cis410-yourname-xxxx-tfstate to your actual bucket name.
   # Find it: GCP Console → Cloud Storage → Buckets
   backend "gcs" {
-    bucket = "cis410-mg-logs"   # ← replace with your bucket name
+    bucket = "cis410-mg-logs" # ← replace with your bucket name
     prefix = "terraform/week7"
   }
 
@@ -78,7 +78,7 @@ module "networking" {
 
   project_id  = var.project_id
   region      = var.region
-  vpc_name    = "cis410-vpc"       # VPC will be named "cis410-vpc" in GCP
-  subnet_cidr = "10.0.1.0/24"     # 256 addresses for application workloads
-  my_ip_cidr  = var.my_ip_cidr    # your IP — set in terraform.tfvars
+  vpc_name    = "cis410-vpc"   # VPC will be named "cis410-vpc" in GCP
+  subnet_cidr = "10.0.1.0/24"  # 256 addresses for application workloads
+  my_ip_cidr  = var.my_ip_cidr # your IP — set in terraform.tfvars
 }
