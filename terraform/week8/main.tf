@@ -68,7 +68,7 @@ data "terraform_remote_state" "week7" {
   backend = "gcs"
   config = {
     bucket = "cis410-mg_cloudbuild"   # ← same bucket as above
-    prefix = "terraform/week8"                 # ← must match Week 7 backend prefix exactly
+    prefix = "terraform/week7"                 # ← must match Week 7 backend prefix exactly
   }
 }
 
